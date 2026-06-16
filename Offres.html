@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Publier une offre - Bâtir Togo</title>
+<link rel="stylesheet" href="style.css">
+<script src="app.js"></script>
+</head>
+<body>
+<div class="container">
+<h1>➕ Publier une offre</h1>
+
+<div class="card">
+<h2>📝 Nouvelle offre</h2>
+<div id="offerMessage"></div>
+
+<input type="text" id="offerTitle" placeholder="📋 Titre de l'offre">
+
+<select id="offerJob">
+<option value="">🔨 Sélectionner un métier</option>
+<option value="Maçon">Maçon</option>
+<option value="Aide-maçon">Aide-maçon</option>
+<option value="Coffreur">Coffreur</option>
+<option value="Ferrailleur">Ferrailleur</option>
+<option value="Carreleur">Carreleur</option>
+<option value="Plombier">Plombier</option>
+<option value="Électricien">Électricien</option>
+<option value="Peintre">Peintre</option>
+<option value="Menuisier">Menuisier</option>
+<option value="Chef chantier">Chef chantier</option>
+</select>
+
+<input type="number" id="offerWorkers" placeholder="👷 Nombre de postes" min="1">
+<input type="text" id="offerRegion" placeholder="🌍 Région">
+<input type="text" id="offerCity" placeholder="🏙️ Ville">
+<input type="text" id="offerDistrict" placeholder="📍 Quartier">
+<input type="text" id="offerSalary" placeholder="💰 Salaire proposé FCFA">
+<input type="text" id="offerWhatsapp" placeholder="📱 Numéro WhatsApp" maxlength="8">
+<textarea id="offerDescription" rows="4" placeholder="📝 Description du poste"></textarea>
+
+<button class="btn btn-primary btn-block" onclick="publishOffer()">Publier l'offre</button>
+<button class="btn btn-block" onclick="window.location.href='accueil.html'">← Retour</button>
+</div>
+
+<div class="card" style="margin-top:20px;">
+<h2>📂 Mes offres publiées (<span id="offerCount">0</span>/10)</h2>
+<div id="myOffersList"></div>
+</div>
+
+<script>
+function checkAuth(){
+const user = getCurrentUser();
+if(!user){
+window.location.href = "index.html";
+}
+}
+checkAuth();
+
+function publishOffer(){
+const data = {
+titre: document.getElementById("offerTitle").value.trim(),
+metier: document.getElementById("offerJob").value,
+postes: document.getElementById("offerWorkers").value,
+region: document.getElementById("offerRegion").value.trim(),
+ville: document.getElementById("offerCity").value.trim(),
+quartier: document.getElementById("offerDistrict").value.trim(),
+salaire: document.getElementById("offerSalary").value,
+whatsapp: document.getElementById("offerWhatsapp").value.trim(),
+description: document.getElementById("offerDescription").value.trim()
+};
+
+if(!data.titre ||!data.metier ||!data.postes ||!data.ville ||!data.salaire ||!data.whatsapp ||!data.description){
+document.getElementById("offerMessage").innerHTML = "<p class='error'>Tous les champs sont obligatoires sauf Région et Quartier</p>";
+return;
+}
+
+const result = createOffer(data);
+document.getElementById("offerMessage").innerHTML = `<p class='${result.success? "success" : "error"}'>${result.message}</p>`;
+
+if(result.success){
+clearForm();
+loadMyOffers();
+}
+}
+
+function clearForm(){
+document.getElementById("offerTitle").value = "";
+document.getElementById("offerJob").value = "";
+document.getElementById("offerWorkers").value = "";
+document.getElementById("offerRegion").value = "";
+document.getElementById("offerCity").value = "";
+document.getElementById("offerDistrict").value = "";
+document.getElementById("offerSalary").value = "";
+document.getElementById("offerWhatsapp").value = "";
+document.getElementById("offerDescription").value = "";
+}
+
+function loadMyOffers(){
+const container = document.getElementById("myOffersList");
+const offers = getMyOffers();
+const user = getCurrentUser();
+const count = countUserOffers(user.phone);
+document.getElementById("offerCount").textContent = count;
+
+if(offers.length === 0){
+container.innerHTML = "<p>Aucune offre publiée.</p>";
+return;
+}
+
+container.innerHTML = "";
+
+offers.forEach(function(offer){
+let statusBadge = offer.status === "active"
+? "<span style='color:green; font-weight:bold;'>✅ Active</span>"
+: "<span style='color:red; font-weight:bold;'>⏸️ Désactivée</span>";
+
+let statusBtn = offer.status === "active"
+? `<button class="btn btn-primary" onclick="toggleOfferStatus('${offer.id}')">Désactiver</button>`
+: `<button class="btn btn-success" onclick="toggleOfferStatus('${offer.id}')">Réactiver</button>`;
+
+container.innerHTML += `
+<div class="offer-card">
+<div class="offer-title">
+${offer.titre} ${statusBadge}
+</div>
+
+<div class="offer-location">
+📍 ${offer.region || ''} - ${offer.ville} - ${offer.quartier || ''}
+</div>
+
+<p>🔨 ${offer.metier}</p>
+<p>👷 ${offer.postes} poste(s)</p>
+<p>💰 ${offer.salaire} FCFA</p>
+<p>📱 ${offer.whatsapp}</p>
+<p class="offer-description">${offer.description}</p>
+<p style="color:#666; font-size:13px;">Publiée le ${new Date(offer.createdAt).toLocaleDateString('fr-FR')}</p>
+
+<div class="filter-grid" style="margin-top:15px;">
+<button class="btn btn-success" onclick="editOffer('${offer.id}')">✏️ Modifier</button>
+${statusBtn}
+<button class="btn btn-danger" onclick="confirmDeleteOffer('${offer.id}')">🗑️ Supprimer</button>
+</div>
+`;
+});
+}
+
+function editOffer(id){
+const offer = getOfferById(id);
+if(!offer) return;
+
+document.getElementById("offerTitle").value = offer.titre;
+document.getElementById("offerJob").value = offer.metier;
+document.getElementById("offerWorkers").value = offer.postes;
+document.getElementById("offerRegion").value = offer.region || "";
+document.getElementById("offerCity").value = offer.ville;
+document.getElementById("offerDistrict").value = offer.quartier || "";
+document.getElementById("offerSalary").value = offer.salaire;
+document.getElementById("offerWhatsapp").value = offer.whatsapp;
+document.getElementById("offerDescription").value = offer.description;
+
+const btn = document.querySelector(".btn-primary");
+btn.textContent = "Enregistrer les modifications";
+btn.setAttribute("onclick", `saveOfferEdit('${id}')`);
+
+window.scrollTo({top: 0, behavior: 'smooth'});
+document.getElementById("offerMessage").innerHTML = "<p class='success'>Modifiez les champs puis cliquez sur Enregistrer</p>";
+}
+
+function saveOfferEdit(id){
+const newData = {
+titre: document.getElementById("offerTitle").value.trim(),
+metier: document.getElementById("offerJob").value,
+postes: document.getElementById("offerWorkers").value,
+region: document.getElementById("offerRegion").value.trim(),
+ville: document.getElementById("offerCity").value.trim(),
+quartier: document.getElementById("offerDistrict").value.trim(),
+salaire: document.getElementById("offerSalary").value,
+whatsapp: document.getElementById("offerWhatsapp").value.trim(),
+description: document.getElementById("offerDescription").value.trim()
+};
+
+const result = updateOffer(id, newData);
+alert(result.message);
+
+if(result.success){
+const btn = document.querySelector(".btn-primary");
+btn.textContent = "Publier l'offre";
+btn.setAttribute("onclick", "publishOffer()");
+clearForm();
+loadMyOffers();
+}
+}
+
+function toggleOfferStatus(id){
+const offer = getOfferById(id);
+if(!offer) return;
+
+if(offer.status === "active"){
+updateOffer(id, {status: "inactive"});
+alert("Offre désactivée. Elle n'apparaît plus dans les recherches.");
+}else{
+const result = reactivateOffer(id);
+alert(result.message);
+}
+loadMyOffers();
+}
+
+function confirmDeleteOffer(id){
+const confirmDel = confirm("Voulez-vous vraiment supprimer cette offre définitivement?");
+if(!confirmDel) return;
+
+const result = deleteOffer(id);
+alert(result.message);
+loadMyOffers();
+}
+
+loadMyOffers();
+</script>
+</body>
+</html>

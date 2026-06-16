@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Accueil - Bâtir Togo</title>
+<link rel="stylesheet" href="style.css">
+<script src="app.js"></script>
+</head>
+<body>
+<div class="container">
+<h1>👋 Bienvenue sur Bâtir Togo</h1>
+
+<div id="profileBox"></div>
+
+<div class="card" style="margin-top:20px;">
+<h2>📊 Tableau de bord</h2>
+<div class="stats-grid" id="statsBox"></div>
+</div>
+
+<div class="card" style="margin-top:20px;">
+<h2>🔥 Dernières offres</h2>
+<div id="latestOffersBox"></div>
+</div>
+
+<div id="adminPanel"></div>
+
+<div style="margin-top:30px;">
+<button class="btn btn-primary btn-block" onclick="window.location.href='offre.html'">
+➕ Publier une offre
+</button>
+
+<button class="btn btn-success btn-block" onclick="window.location.href='emplois.html'">
+🔍 Rechercher des offres
+</button>
+
+<button class="btn btn-danger btn-block" onclick="logout()">
+🚪 Se déconnecter
+</button>
+</div>
+
+<script>
+function loadProfile(){
+const profileBox = document.getElementById("profileBox");
+const user = getCurrentUser();
+
+if(!user){
+window.location.href = "index.html";
+return;
+}
+
+const dbUser = getUserProfile(user.phone);
+if(!dbUser){
+profileBox.innerHTML = "<p class='error'>Profil introuvable.</p>";
+return;
+}
+
+let photo = dbUser.photo? dbUser.photo : "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Crect width='120' height='120' fill='%230A2540'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='50' fill='white'%3E👤%3C/text%3E%3C/svg%3E";
+
+let roleText = dbUser.role === "admin"? "👑 Administrateur" : "👷 Utilisateur";
+
+profileBox.innerHTML = `
+<div class="profile-box">
+<img src="${photo}" class="profile-photo" alt="Photo">
+<div class="profile-info">
+<p><strong>📱 Téléphone :</strong> ${dbUser.phone}</p>
+<p><strong>📧 Email :</strong> ${dbUser.email || "Non renseigné"}</p>
+<p><strong>🌍 Langue :</strong> ${dbUser.language}</p>
+<p><strong>📅 Inscrit le :</strong> ${new Date(dbUser.createdAt).toLocaleDateString('fr-FR')}</p>
+<p><strong>${roleText}</strong></p>
+</div>
+
+<div style="margin-top:20px; border-top:1px solid #ddd; padding-top:15px;">
+<button class="btn btn-danger btn-block" onclick="confirmDeleteAccount()">
+🗑️ Supprimer mon compte définitivement
+</button>
+<p style="color:#666; font-size:13px; margin-top:8px;">
+⚠️ Attention : Cette action est irréversible. Toutes vos offres seront supprimées.
+</p>
+</div>
+`;
+}
+
+function loadDashboard(){
+const statsBox = document.getElementById("statsBox");
+const stats = getStatistics();
+const myOffers = getMyOffers();
+
+statsBox.innerHTML = `
+<div class="stat-card">
+<div class="stat-number">${stats.users}</div>
+<div class="stat-label">👥 Utilisateurs</div>
+</div>
+
+<div class="stat-card">
+<div class="stat-number">${stats.activeOffers}</div>
+<div class="stat-label">💼 Offres actives</div>
+</div>
+
+<div class="stat-card">
+<div class="stat-number">${myOffers.length}</div>
+<div class="stat-label">📝 Mes offres</div>
+</div>
+
+<div class="stat-card">
+<div class="stat-number">${stats.admins}</div>
+<div class="stat-label">👑 Admins</div>
+</div>
+`;
+}
+
+function loadLatestOffers(){
+const box = document.getElementById("latestOffersBox");
+const offers = getLatestOffers(5);
+
+if(offers.length === 0){
+box.innerHTML = "<p>Aucune offre pour le moment.</p>";
+return;
+}
+
+box.innerHTML = "";
+offers.forEach(function(offer){
+box.innerHTML += `
+<div class="offer-card" onclick="window.location.href='emplois.html'">
+<div class="offer-title">${offer.titre}</div>
+<div class="offer-location">📍 ${offer.ville} - ${offer.quartier || ''}</div>
+<p>🔨 ${offer.metier}</p>
+<p>💰 ${offer.salaire} FCFA</p>
+</div>
+`;
+});
+}
+
+function loadAdminPanel(){
+const panel = document.getElementById("adminPanel");
+const admin = isAdmin();
+
+if(!admin) return;
+
+const stats = getAdminStats();
+
+panel.innerHTML = `
+<div class="card" style="margin-top:20px; background:#FFF3E0;">
+<h2>👑 Panel Admin</h2>
+<div class="stats-grid">
+<div class="stat-card">
+<div class="stat-number">${stats.users}</div>
+<div class="stat-label">Utilisateurs</div>
+<div class="stat-card">
+<div class="stat-number">${stats.blocked}</div>
+<div class="stat-label">Bloqués</div>
+<div class="stat-card">
+<div class="stat-number">${stats.offers}</div>
+<div class="stat-label">Offres totales</div>
+</div>
+<div class="stat-card">
+<div class="stat-number">${stats.activeOffers}</div>
+<div class="stat-label">Offres actives</div>
+</div>
+</div>
+</div>
+`;
+}
+
+function confirmDeleteAccount(){
+const user = getCurrentUser();
+if(!user) return;
+
+const confirm1 = confirm("Voulez-vous vraiment supprimer votre compte Bâtir Togo?");
+if(!confirm1) return;
+
+const confirm2 = confirm("DERNIÈRE CHANCE : Toutes vos offres seront perdues. Confirmer?");
+if(!confirm2) return;
+
+const password = prompt("Entrez votre mot de passe pour confirmer la suppression :");
+if(!password) return;
+
+const result = deleteUserAccount(user.phone, password);
+alert(result.message);
+
+if(result.success){
+window.location.href = "index.html";
+}
+}
+
+loadProfile();
+loadDashboard();
+loadLatestOffers();
+loadAdminPanel();
+</script>
+</body>
+</html>

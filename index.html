@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bâtir Togo - Connexion</title>
+<link rel="stylesheet" href="style.css">
+<script src="app.js"></script>
+</head>
+<body>
+<div class="container">
+<h1>🏗️ Bâtir Togo</h1>
+<p style="text-align:center; color:#666; margin-bottom:20px;">Plateforme de mise en relation maçons & recruteurs</p>
+
+<div class="card">
+<h2>🔑 Connexion</h2>
+<div id="loginMessage"></div>
+
+<input type="text" id="loginPhone" placeholder="📱 Numéro de téléphone" maxlength="8">
+<input type="password" id="loginPassword" placeholder="🔒 Mot de passe">
+
+<button class="btn btn-primary btn-block" onclick="login()">Se connecter</button>
+
+<p style="text-align:center; margin-top:15px;">
+Pas de compte? <a href="#" onclick="showRegister()">S'inscrire</a>
+</p>
+</div>
+
+<div class="card" id="registerCard" style="display:none;">
+<h2>📝 Inscription</h2>
+<div id="registerMessage"></div>
+
+<input type="text" id="regPhone" placeholder="📱 Numéro de téléphone" maxlength="8">
+<input type="email" id="regEmail" placeholder="📧 Email">
+<input type="password" id="regPassword" placeholder="🔒 Mot de passe (6-8 car, 1 lettre + 1 chiffre)">
+
+<select id="regLanguage">
+<option value="fr">🇫🇷 Français</option>
+<option value="ewe">🇹🇬 Ewe</option>
+<option value="kabye">🇹🇬 Kabye</option>
+</select>
+
+<button class="btn btn-success btn-block" onclick="register()">Créer mon compte</button>
+
+<p style="text-align:center; margin-top:15px;">
+Déjà inscrit? <a href="#" onclick="showLogin()">Se connecter</a>
+</p>
+</div>
+</div>
+
+<script>
+function showRegister(){
+document.getElementById("registerCard").style.display = "block";
+}
+
+function showLogin(){
+document.getElementById("registerCard").style.display = "none";
+}
+
+function register(){
+const data = {
+phone: document.getElementById("regPhone").value.trim(),
+email: document.getElementById("regEmail").value.trim(),
+password: document.getElementById("regPassword").value,
+language: document.getElementById("regLanguage").value
+};
+
+const result = registerUser(data);
+const msg = document.getElementById("registerMessage");
+
+if(result.success){
+msg.innerHTML = `<p class='success'>${result.message}</p>`;
+setTimeout(() => {
+showLogin();
+}, 1500);
+}else{
+msg.innerHTML = `<p class='error'>${result.message}</p>`;
+}
+}
+
+function login(){
+const phone = document.getElementById("loginPhone").value.trim();
+const password = document.getElementById("loginPassword").value;
+
+const result = loginUser(phone, password);
+const msg = document.getElementById("loginMessage");
+
+if(result.success){
+msg.innerHTML = `<p class='success'>${result.message}</p>`;
+setTimeout(() => {
+window.location.href = "accueil.html";
+}, 800);
+}else{
+msg.innerHTML = `<p class='error'>${result.message}</p>`;
+}
+}
+</script>
+</body>
+</html>

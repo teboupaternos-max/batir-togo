@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rechercher des offres - Bâtir Togo</title>
+<link rel="stylesheet" href="style.css">
+<script src="app.js"></script>
+</head>
+<body>
+<div class="container">
+<h1>🔍 Rechercher des offres</h1>
+
+<div class="card">
+<h2>🎯 Filtres</h2>
+
+<select id="filterJob">
+<option value="">🔨 Tous les métiers</option>
+<option value="Maçon">Maçon</option>
+<option value="Aide-maçon">Aide-maçon</option>
+<option value="Coffreur">Coffreur</option>
+<option value="Ferrailleur">Ferrailleur</option>
+<option value="Carreleur">Carreleur</option>
+<option value="Plombier">Plombier</option>
+<option value="Électricien">Électricien</option>
+<option value="Peintre">Peintre</option>
+<option value="Menuisier">Menuisier</option>
+<option value="Chef chantier">Chef chantier</option>
+</select>
+
+<input type="text" id="filterRegion" placeholder="🌍 Région">
+<input type="text" id="filterCity" placeholder="🏙️ Ville">
+<input type="text" id="filterDistrict" placeholder="📍 Quartier">
+<input type="text" id="filterKeyword" placeholder="🔎 Mot-clé dans titre/description">
+
+<button class="btn btn-primary btn-block" onclick="search()">Rechercher</button>
+<button class="btn btn-block" onclick="resetFilters()">Réinitialiser</button>
+<button class="btn btn-block" onclick="window.location.href='accueil.html'">← Accueil</button>
+</div>
+
+<div class="card" style="margin-top:20px;">
+<h2>📋 Résultats (<span id="resultCount">0</span>)</h2>
+<div id="resultsBox"></div>
+</div>
+</div>
+
+<script>
+function checkAuth(){
+const user = getCurrentUser();
+if(!user){
+window.location.href = "index.html";
+}
+}
+checkAuth();
+
+function search(){
+const filters = {
+metier: document.getElementById("filterJob").value,
+region: document.getElementById("filterRegion").value.trim(),
+ville: document.getElementById("filterCity").value.trim(),
+quartier: document.getElementById("filterDistrict").value.trim(),
+keyword: document.getElementById("filterKeyword").value.trim()
+};
+
+const results = searchOffers(filters);
+displayResults(results);
+}
+
+function resetFilters(){
+document.getElementById("filterJob").value = "";
+document.getElementById("filterRegion").value = "";
+document.getElementById("filterCity").value = "";
+document.getElementById("filterDistrict").value = "";
+document.getElementById("filterKeyword").value = "";
+search();
+}
+
+function displayResults(offers){
+const box = document.getElementById("resultsBox");
+document.getElementById("resultCount").textContent = offers.length;
+
+if(offers.length === 0){
+box.innerHTML = "<p>Aucune offre trouvée.</p>";
+return;
+}
+
+box.innerHTML = "";
+offers.forEach(function(offer){
+let whatsappLink = `https://wa.me/228${offer.whatsapp}?text=Bonjour, je suis intéressé par votre offre : ${encodeURIComponent(offer.titre)}`;
+
+box.innerHTML += `
+<div class="offer-card">
+<div class="offer-title">${offer.titre}</div>
+
+<div class="offer-location">
+📍 ${offer.region || ''} - ${offer.ville} - ${offer.quartier || ''}
+</div>
+
+<p>🔨 <strong>Métier :</strong> ${offer.metier}</p>
+<p>👷 <strong>Postes :</strong> ${offer.postes}</p>
+<p>💰 <strong>Salaire :</strong> ${offer.salaire} FCFA</p>
+<p class="offer-description">${offer.description}</p>
+<p style="color:#666; font-size:13px;">Publiée le ${new Date(offer.createdAt).toLocaleDateString('fr-FR')}</p>
+
+<a href="${whatsappLink}" target="_blank" class="btn btn-success btn-block">
+📱 Contacter sur WhatsApp
+</a>
+</div>
+`;
+});
+}
+
+// Charge toutes les offres au démarrage
+search();
+</script>
+</body>
+</html>
